@@ -5,11 +5,14 @@ import re
 import pandas as pd
 import os
 
-pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
+# Specify the path to the Tesseract executable
+pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'  # Update this path if needed
 
-def extract_text(image):
-    return pytesseract.image_to_string(image)
+# Function to extract text from image using pytesseract
+def extract_text(image, lang='eng'):
+    return pytesseract.image_to_string(image, lang=lang)
 
+# Function to parse extracted text to find name, email, phone, and address
 def parse_text(text):
     name, email, phone, address = None, None, None, None
 
@@ -22,28 +25,44 @@ def parse_text(text):
     if phone_match:
         phone = phone_match.group(0)
 
-    # Assuming the first line is the name and the rest is address 
+    # Assuming the first line is the name and the rest is address (a simple assumption)
     lines = text.split('\n')
     if lines:
+        name = lines[0]
         address = ' '.join(lines[1:])
 
     return {
-        'email': email,
-        'phone': phone,
-        'address': address,
-        'extracted_text':text
+        'Name': name,
+        'Email': email,
+        'Phone': phone,
+        'Address': address
     }
 
+# Ensure the directory to save images exists
+image_save_path = 'uploaded_images'
+if not os.path.exists(image_save_path):
+    os.makedirs(image_save_path)
+
+# Streamlit app interface
 st.title("Business Card Scanner")
 
-uploaded_file = st.file_uploader("Choose a visiting card image to scan...", type="jpg")
+uploaded_file = st.file_uploader("Choose an image...", type="jpg")
 
 if uploaded_file is not None:
-    image = Image.open(uploaded_file)
+    # Save the uploaded file to the directory
+    image_path = os.path.join(image_save_path, uploaded_file.name)
+    with open(image_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+
+    # Open the image
+    image = Image.open(image_path)
     st.image(image, caption='Uploaded Image.', use_column_width=True)
 
+    # Select language for OCR
+    language = st.selectbox('Select OCR Language', ['eng', 'jpn'])
+
     st.write("Extracting text from image...")
-    extracted_text = extract_text(image)
+    extracted_text = extract_text(image, lang=language)
     st.write("Extracted Text:", extracted_text)
 
     st.write("Parsing extracted text...")
@@ -54,9 +73,21 @@ if uploaded_file is not None:
         df = pd.DataFrame([parsed_data])
         
         # Check if file exists
-        if not os.path.isfile('business_cards.csv'):
-            df.to_csv('business_cards.csv', index=False)
+        csv_file_path = 'business_cards.csv'
+        if not os.path.isfile(csv_file_path):
+            df.to_csv(csv_file_path, index=False)
         else:
-            df.to_csv('business_cards.csv', mode='a', header=False, index=False)
+            df.to_csv(csv_file_path, mode='a', header=False, index=False)
         
         st.write("Data saved to database")
+
+# Add a button to download the CSV file
+if os.path.exists('business_cards.csv'):
+    with open('business_cards.csv', 'rb') as f:
+        st.download_button(
+            label="Download CSV",
+            data=f,
+            file_name='business_cards.csv',
+            mime='text/csv'
+        )
+
