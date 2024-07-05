@@ -2,6 +2,8 @@ import streamlit as st
 from PIL import Image
 import pytesseract
 import re
+import pandas as pd
+import os
 
 pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
 
