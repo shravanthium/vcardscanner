@@ -20,17 +20,16 @@ def parse_text(text):
     if phone_match:
         phone = phone_match.group(0)
 
-    # Assuming the first line is the name and the rest is address (a simple assumption)
+    # Assuming the first line is the name and the rest is address 
     lines = text.split('\n')
     if lines:
-        name = lines[0]
         address = ' '.join(lines[1:])
 
     return {
-        'Name': name,
-        'Email': email,
-        'Phone': phone,
-        'Address': address
+        'email': email,
+        'phone': phone,
+        'address': address,
+        'extracted_text':text
     }
 
 st.title("Business Card Scanner")
@@ -50,6 +49,12 @@ if uploaded_file is not None:
     st.write("Parsed Data:", parsed_data)
 
     if st.button("Save to Database"):
-        # Here you can add code to save parsed_data to a database
+        df = pd.DataFrame([parsed_data])
+        
+        # Check if file exists
+        if not os.path.isfile('business_cards.csv'):
+            df.to_csv('business_cards.csv', index=False)
+        else:
+            df.to_csv('business_cards.csv', mode='a', header=False, index=False)
+        
         st.write("Data saved to database")
-
